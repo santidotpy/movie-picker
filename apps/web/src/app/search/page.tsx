@@ -7,9 +7,15 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
-
-type MediaType = "movie" | "tv";
+import { MoreVertical, Heart, Eye, Bookmark } from "lucide-react";
+import type { AddToListRequest, MediaType, ListType } from "@/lib/media-types";
 
 type SearchItem = {
   id: string;
@@ -37,6 +43,43 @@ export default function SearchPage() {
   const [searchType, setSearchType] = useState<"movie" | "tv" | "multi">(
     "multi"
   );
+
+  // Handle adding items to lists
+  const handleAddToList = async (item: SearchItem, listType: ListType) => {
+    try {
+      const requestBody: AddToListRequest = {
+        mediaId: item.id,
+        mediaType: item.mediaType,
+        title: item.title,
+        posterUrl: item.posterUrl,
+        listType,
+      };
+
+      const response = await fetch("/api/list/add", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          toast.error("Please sign in to save items to your lists");
+          return;
+        }
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to add to list");
+      }
+
+      const data = await response.json();
+      toast.success(data.message || `Added to ${listType}`);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Could not save item";
+      toast.error(errorMessage);
+    }
+  };
 
   // Debounce search
   const debouncedSearch = useCallback(
@@ -246,12 +289,49 @@ export default function SearchPage() {
                     <CardTitle className="text-sm leading-tight line-clamp-2">
                       {item.title}
                     </CardTitle>
-                    <Badge
-                      variant={getMediaTypeVariant(item.mediaType)}
-                      className="text-xs shrink-0"
-                    >
-                      {getMediaTypeLabel(item.mediaType)}
-                    </Badge>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Badge
+                        variant={getMediaTypeVariant(item.mediaType)}
+                        className="text-xs"
+                      >
+                        {getMediaTypeLabel(item.mediaType)}
+                      </Badge>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0"
+                          >
+                            <MoreVertical className="h-3 w-3" />
+                            <span className="sr-only">Opciones de lista</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={() => handleAddToList(item, "FAVORITE")}
+                            className="cursor-pointer"
+                          >
+                            <Heart className="mr-2 h-4 w-4" />
+                            Agregar a Favoritos
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handleAddToList(item, "WATCHED")}
+                            className="cursor-pointer"
+                          >
+                            <Eye className="mr-2 h-4 w-4" />
+                            Marcar como Visto
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handleAddToList(item, "WATCHLIST")}
+                            className="cursor-pointer"
+                          >
+                            <Bookmark className="mr-2 h-4 w-4" />
+                            Agregar a Lista de Espera
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </div>
 
                   <div className="flex items-center justify-between text-xs text-muted-foreground">

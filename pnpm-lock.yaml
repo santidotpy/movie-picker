@@ -57,6 +57,9 @@ importers:
       '@better-t-movies/auth':
         specifier: workspace:*
         version: link:../../packages/auth
+      '@better-t-movies/db':
+        specifier: workspace:*
+        version: link:../../packages/db
       '@radix-ui/react-slot':
         specifier: ^1.2.3
         version: 1.2.3(@types/react@19.1.17)(react@19.1.0)
@@ -84,6 +87,9 @@ importers:
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
+      drizzle-orm:
+        specifier: ^0.44.2
+        version: 0.44.6(@neondatabase/serverless@1.0.2)(@types/pg@8.15.5)(better-sqlite3@12.4.1)(kysely@0.28.8)
       lucide-react:
         specifier: ^0.487.0
         version: 0.487.0(react@19.1.0)
