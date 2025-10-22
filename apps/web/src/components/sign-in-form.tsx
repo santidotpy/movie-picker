@@ -1,3 +1,5 @@
+"use client";
+
 import { authClient } from "@/lib/auth-client";
 import { useForm } from "@tanstack/react-form";
 import { toast } from "sonner";
@@ -5,131 +7,160 @@ import z from "zod";
 import Loader from "./loader";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import { Label } from "./ui/label";
 import { useRouter } from "next/navigation";
+import { cn } from "@/lib/utils";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Field,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
 
 export default function SignInForm({
-	onSwitchToSignUp,
+  onSwitchToSignUp,
+  className,
+  ...props
 }: {
-	onSwitchToSignUp: () => void;
-}) {
-	const router = useRouter();
-	const { isPending } = authClient.useSession();
+  onSwitchToSignUp: () => void;
+} & React.ComponentProps<"div">) {
+  const router = useRouter();
+  const { isPending } = authClient.useSession();
 
-	const form = useForm({
-		defaultValues: {
-			email: "",
-			password: "",
-		},
-		onSubmit: async ({ value }) => {
-			await authClient.signIn.email(
-				{
-					email: value.email,
-					password: value.password,
-				},
-				{
-					onSuccess: () => {
-						router.push("/dashboard");
-						toast.success("Sign in successful");
-					},
-					onError: (error) => {
-						toast.error(error.error.message || error.error.statusText);
-					},
-				},
-			);
-		},
-		validators: {
-			onSubmit: z.object({
-				email: z.email("Invalid email address"),
-				password: z.string().min(8, "Password must be at least 8 characters"),
-			}),
-		},
-	});
+  const form = useForm({
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+    validators: {
+      onSubmit: z.object({
+        email: z.string().email("Invalid email address"),
+        password: z.string().min(8, "Password must be at least 8 characters"),
+      }),
+    },
+    onSubmit: async ({ value }) => {
+      await authClient.signIn.email(
+        {
+          email: value.email,
+          password: value.password,
+        },
+        {
+          onSuccess: () => {
+            router.push("/dashboard");
+            toast.success("Sign in successful");
+          },
+          onError: (error) => {
+            toast.error(error.error.message || error.error.statusText);
+          },
+        }
+      );
+    },
+  });
 
-	if (isPending) {
-		return <Loader />;
-	}
+  if (isPending) return <Loader />;
 
-	return (
-		<div className="mx-auto w-full mt-10 max-w-md p-6">
-			<h1 className="mb-6 text-center text-3xl font-bold">Welcome Back</h1>
+  return (
+    <div className={cn("mx-auto w-full max-w-md p-6", className)} {...props}>
+      <Card className="border-muted/60">
+        <CardHeader className="text-center">
+          <CardTitle>Login to your account</CardTitle>
+          <CardDescription>
+            Enter your email below to login to your account
+          </CardDescription>
+        </CardHeader>
 
-			<form
-				onSubmit={(e) => {
-					e.preventDefault();
-					e.stopPropagation();
-					form.handleSubmit();
-				}}
-				className="space-y-4"
-			>
-				<div>
-					<form.Field name="email">
-						{(field) => (
-							<div className="space-y-2">
-								<Label htmlFor={field.name}>Email</Label>
-								<Input
-									id={field.name}
-									name={field.name}
-									type="email"
-									value={field.state.value}
-									onBlur={field.handleBlur}
-									onChange={(e) => field.handleChange(e.target.value)}
-								/>
-								{field.state.meta.errors.map((error) => (
-									<p key={error?.message} className="text-red-500">
-										{error?.message}
-									</p>
-								))}
-							</div>
-						)}
-					</form.Field>
-				</div>
+        <CardContent>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              form.handleSubmit();
+            }}
+          >
+            <FieldGroup className="gap-5">
+              {/* Email */}
+              <form.Field name="email">
+                {(field) => (
+                  <Field>
+                    <FieldLabel htmlFor={field.name}>Email</FieldLabel>
+                    <Input
+                      id={field.name}
+                      name={field.name}
+                      type="email"
+                      placeholder="m@example.com"
+                      value={field.state.value ?? ""}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      autoComplete="email"
+                    />
+                    {field.state.meta.errors.length > 0 && (
+                      <FieldDescription className="text-destructive">
+                        {field.state.meta.errors[0]?.message}
+                      </FieldDescription>
+                    )}
+                  </Field>
+                )}
+              </form.Field>
 
-				<div>
-					<form.Field name="password">
-						{(field) => (
-							<div className="space-y-2">
-								<Label htmlFor={field.name}>Password</Label>
-								<Input
-									id={field.name}
-									name={field.name}
-									type="password"
-									value={field.state.value}
-									onBlur={field.handleBlur}
-									onChange={(e) => field.handleChange(e.target.value)}
-								/>
-								{field.state.meta.errors.map((error) => (
-									<p key={error?.message} className="text-red-500">
-										{error?.message}
-									</p>
-								))}
-							</div>
-						)}
-					</form.Field>
-				</div>
+              {/* Password */}
+              <form.Field name="password">
+                {(field) => (
+                  <Field>
+                    <Input
+                      id={field.name}
+                      name={field.name}
+                      type="password"
+                      placeholder="********"
+                      value={field.state.value ?? ""}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      autoComplete="current-password"
+                    />
+                    {field.state.meta.errors.length > 0 && (
+                      <FieldDescription className="text-destructive">
+                        {field.state.meta.errors[0]?.message}
+                      </FieldDescription>
+                    )}
+                  </Field>
+                )}
+              </form.Field>
 
-				<form.Subscribe>
-					{(state) => (
-						<Button
-							type="submit"
-							className="w-full"
-							disabled={!state.canSubmit || state.isSubmitting}
-						>
-							{state.isSubmitting ? "Submitting..." : "Sign In"}
-						</Button>
-					)}
-				</form.Subscribe>
-			</form>
+              {/* Actions */}
+              <form.Subscribe>
+                {(state) => (
+                  <Field className="space-y-3">
+                    <Button
+                      type="submit"
+                      disabled={!state.canSubmit || state.isSubmitting}
+                      className="w-full"
+                    >
+                      {state.isSubmitting ? "Submitting..." : "Login"}
+                    </Button>
 
-			<div className="mt-4 text-center">
-				<Button
-					variant="link"
-					onClick={onSwitchToSignUp}
-					className="text-indigo-600 hover:text-indigo-800"
-				>
-					Need an account? Sign Up
-				</Button>
-			</div>
-		</div>
-	);
+                    <FieldDescription className="text-center">
+                      Don&apos;t have an account?{" "}
+                      <Button
+                        type="button"
+                        variant="link"
+                        className="px-1"
+                        onClick={onSwitchToSignUp}
+                      >
+                        Sign up
+                      </Button>
+                    </FieldDescription>
+                  </Field>
+                )}
+              </form.Subscribe>
+            </FieldGroup>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
+  );
 }
