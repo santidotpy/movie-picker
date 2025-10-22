@@ -14,13 +14,23 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
-import { MoreVertical, Trash2, Heart, Eye, Bookmark } from "lucide-react";
+import {
+  MoreVertical,
+  Trash2,
+  Heart,
+  Eye,
+  Bookmark,
+  Dice5,
+  Sparkles,
+  Shuffle,
+} from "lucide-react";
 import type {
   ListResponse,
   ListItem,
   ListType,
   RemoveFromListRequest,
 } from "@/lib/media-types";
+import { motion } from "motion/react";
 
 const LIST_TYPES: { value: ListType; label: string; icon: React.ReactNode }[] =
   [
@@ -49,6 +59,10 @@ export default function ListsClient() {
     WATCHED: false,
     WATCHLIST: false,
   });
+
+  // --- Estados para sorteo WATCHLIST ---
+  const [randomPick, setRandomPick] = useState<ListItem | null>(null);
+  const [picking, setPicking] = useState(false);
 
   const fetchList = async (listType: ListType, page: number = 1) => {
     setLoading((prev) => ({ ...prev, [listType]: true }));
@@ -107,6 +121,11 @@ export default function ListsClient() {
 
       // Refresh the current list
       fetchList(listType, lists[listType].page);
+
+      // Si quitaste el ítem sorteado, limpialo
+      if (randomPick?.id === item.id && listType === "WATCHLIST") {
+        setRandomPick(null);
+      }
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Could not remove item";
@@ -143,6 +162,24 @@ export default function ListsClient() {
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("es-AR");
+  };
+
+  // --- Lógica de sorteo ---
+  const pickRandomFromWatchlist = () => {
+    const current = lists.WATCHLIST.results;
+    if (!current || current.length === 0) {
+      toast.info("Tu WATCHLIST está vacía en esta página.");
+      return;
+    }
+    setPicking(true);
+
+    // Pequeña animación de “sorteo”
+    setTimeout(() => {
+      const winner = current[Math.floor(Math.random() * current.length)];
+      setRandomPick(winner);
+      setPicking(false);
+      toast.success(`¡Sorteada: ${winner.title}!`);
+    }, 700);
   };
 
   return (
@@ -188,6 +225,116 @@ export default function ListsClient() {
             </div>
           ) : (
             <>
+              {/* --- BLOQUE DE SORTEO SOLO EN WATCHLIST --- */}
+              {listType === "WATCHLIST" && (
+                <Card className="mb-6 border-muted/60 bg-gradient-to-r from-primary/10 via-background to-secondary/10">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="h-5 w-5 text-primary" />
+                        <CardTitle className="text-base">
+                          Sorteo rápido de tu WATCHLIST
+                        </CardTitle>
+                      </div>
+                      <Button
+                        variant="default"
+                        onClick={pickRandomFromWatchlist}
+                        disabled={picking}
+                        aria-label="Elegir una película al azar"
+                        className="gap-2"
+                      >
+                        {picking ? (
+                          <>
+                            <Shuffle className="h-4 w-4 animate-spin" />
+                            Sorteando…
+                          </>
+                        ) : (
+                          <>
+                            <Dice5 className="h-4 w-4" />
+                            Elegir al azar
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Elige aleatoriamente entre los elementos de la página
+                      actual.
+                    </p>
+                  </CardHeader>
+
+                  {randomPick && (
+                    <CardContent>
+                      <motion.div
+                        initial={{ scale: 0.98, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{
+                          type: "spring",
+                          stiffness: 220,
+                          damping: 20,
+                        }}
+                        className="flex items-center gap-4 p-3 rounded-xl border bg-background"
+                      >
+                        <div className="relative h-20 w-14 overflow-hidden rounded-md shrink-0">
+                          {randomPick.posterUrl ? (
+                            <Image
+                              src={randomPick.posterUrl}
+                              alt={`Poster de ${randomPick.title}`}
+                              fill
+                              sizes="56px"
+                              className="object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-muted flex items-center justify-center text-xs text-muted-foreground">
+                              Sin imagen
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-medium truncate">
+                              {randomPick.title}
+                            </span>
+                            <Badge
+                              variant={getMediaTypeVariant(
+                                randomPick.mediaType
+                              )}
+                              className="text-xs"
+                            >
+                              {getMediaTypeLabel(randomPick.mediaType)}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground line-clamp-2">
+                            Agregado el {formatDate(randomPick.createdAt)}
+                          </p>
+                        </div>
+
+                        <div className="flex gap-2">
+                          <Button
+                            variant="secondary"
+                            onClick={pickRandomFromWatchlist}
+                            className="gap-1"
+                          >
+                            <Shuffle className="h-4 w-4" />
+                            Re-sortear
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() =>
+                              handleRemoveFromList(randomPick, "WATCHLIST")
+                            }
+                            className="gap-1"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            Quitar
+                          </Button>
+                        </div>
+                      </motion.div>
+                    </CardContent>
+                  )}
+                </Card>
+              )}
+
               <div className="mb-6">
                 <p className="text-sm text-muted-foreground">
                   {lists[listType].results.length} elemento
