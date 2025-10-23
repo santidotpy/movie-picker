@@ -9,7 +9,7 @@ export default async function ListsPage() {
   });
 
   if (!session?.user) {
-    redirect("/sign-in");
+    redirect("/login");
   }
 
   return (
