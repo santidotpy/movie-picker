@@ -16,6 +16,8 @@ import {
 import { toast } from "sonner";
 import { MoreVertical, Heart, Eye, Bookmark } from "lucide-react";
 import type { AddToListRequest, MediaType, ListType } from "@/lib/media-types";
+import { authClient } from "@/lib/auth-client";
+import { redirect } from "next/navigation";
 
 type SearchItem = {
   id: string;
@@ -43,6 +45,11 @@ export default function SearchPage() {
   const [searchType, setSearchType] = useState<"movie" | "tv" | "multi">(
     "multi"
   );
+  const { data: session } = authClient.useSession();
+
+  if (!session) {
+    redirect("/login");
+  }
 
   // Handle adding items to lists
   const handleAddToList = async (item: SearchItem, listType: ListType) => {
